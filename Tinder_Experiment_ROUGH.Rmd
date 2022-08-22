@@ -1,0 +1,151 @@
+---
+title: "Tinder Experiment Data ROUGH"
+author: "Emerson Fleming"
+date: "11/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+require(tidyr)
+require(dplyr)
+require(factoextra)
+require(ggfittext)
+require(ggplot2)
+require(ggpubr)
+myDataPath <- read.csv("Tinder_Data_Final - Sheet1.csv", header=TRUE, stringsAsFactors = FALSE) 
+colnames(myDataPath)
+```
+
+
+```{r}
+p1 <- ggplot(myDataPath,
+    aes(x=Participant.Name, weight = Weekly.Matches.Before., fill = Participant.Name), position = "dodge") +
+    geom_bar() +
+    labs(title = "Weekly Tinder Matches [Before]",
+         x = "") +
+    theme_minimal() +
+    theme(title = element_text(size = 8))
+p1 <- p1 + guides(fill=guide_legend(title="Participant Name"))
+```
+
+
+```{r}
+p2 <- ggplot(myDataPath,
+    aes(x=Participant.Name, weight = Weekly.Matches.After., fill = Participant.Name), position = "dodge") +
+    geom_bar(show.legend = FALSE) +
+    labs(title = "Weekly Tinder Matches [After]",
+         x = "") +
+    theme_minimal() +
+    theme(title = element_text(size = 8))
+p2 <- p2 + guides(fill=guide_legend(title="Participant Name"))
+```
+
+```{r}
+ggarrange(p1, p2, nrow = 2)
+```
+
+
+```{r}
+q1 <- ggplot(myDataPath,
+    aes(x=Participant.Name, weight = X5.matches.to.other.platform, fill = Participant.Name), position = "dodge") +
+    geom_bar() +
+    labs(title = "Tinder Match to Other Platform Conversion Rate (for Last 5 Matches) [Before]",
+         x = "") +
+    coord_cartesian(ylim = c(0, 5)) +
+    theme_minimal() +
+    theme(title = element_text(size = 8))
+q1 <- q1 + guides(fill=guide_legend(title="Participant Name"))
+```
+
+```{r}
+q2 <- ggplot(myDataPath,
+    aes(x=Participant.Name, weight = X5.matches.to.phone.numbers.after., fill = Participant.Name), position = "dodge") +
+    geom_bar(show.legend = FALSE) +
+    labs(title = "Tinder Match to Other Platform Conversion Rate (for Last 5 Matches) [After]",
+         x = "") +
+    coord_cartesian(ylim = c(0, 5)) +
+    theme_minimal() +
+    theme(title = element_text(size = 8))
+q2 <- q2 + guides(fill=guide_legend(title="Participant Name"))
+```
+
+
+```{r}
+ggarrange(q1, q2, nrow = 2)
+ggsave()
+```
+
+
+```{r}
+z1 <- ggplot(myDataPath,
+    aes(x=Participant.Name, weight = Dates.Before., fill = Participant.Name), position = "dodge") +
+    geom_bar() +
+    labs(title = "Dates Before per Week [Before]",
+         x = "") +
+    coord_cartesian(ylim = c(0, 5)) +
+    theme_minimal() +
+    theme(title = element_text(size = 8))
+z1 <- z1 + guides(fill=guide_legend(title="Participant Name"))
+```
+
+```{r}
+z2 <- ggplot(myDataPath,
+    aes(x=Participant.Name, weight = Dates.After., fill = Participant.Name), position = "dodge") +
+    geom_bar(show.legend = FALSE) +
+    labs(title = "Dates Before per Week [After]",
+         x = "") +
+    coord_cartesian(ylim = c(0, 5)) +
+    theme_minimal() +
+    theme(title = element_text(size = 8))
+z2 <- z2 + guides(fill=guide_legend(title="Participant Name"))
+```
+
+```{r}
+ggarrange(z1, z2, nrow = 2)
+```
+
+
+```{r}
+lm(X5.matches.to.phone.numbers.after.~Dates.After., data = myDataPath) %>%
+  summary() 
+```
+
+```{r}
+a1 <- Match_to_Conversion_and_Dates_Sim <- lm(X5.matches.to.phone.numbers.after.~Dates.After., data = myDataPath)
+ggplot(Match_to_Conversion_and_Dates_Sim,
+  aes(x = X5.matches.to.phone.numbers.after., y = Dates.After.)) +
+  geom_line(color = "black") +
+  geom_smooth(color = "red") +
+labs(title = "Correlation Between Dates [After] and Match to Platform Conversion [After]",
+       x = "Match to Other Platform Conversion",
+       y = "Dates After") +
+  theme(title = element_text(size = 12)) +
+  theme_classic() 
+ggsave("Correlation_Between_Dates_and_Match_to_Platform_Conversion.png")
+```
+
+```{r}
+lm(Dates.After.~Weekly.Matches.After., data = myDataPath) %>%
+  summary() 
+ggsave("Matches_to_Dates_Correlation_Numbers.png")
+```
+
+```{r}
+a2 <- Matches_to_Dates_Sim <- lm(Weekly.Matches.After.~Dates.After., data = myDataPath)
+ggplot(Matches_to_Dates_Sim,
+  aes(x = Weekly.Matches.After., y = Dates.After.)) +
+  geom_line(color = "black") +
+  geom_smooth(color = "red") +
+labs(title = "Correlation Between Dates [After] and Matches [After]",
+       x = "Weekly Matches After",
+       y = "Dates After") +
+  theme(title = element_text(size = 12)) +
+  theme_classic()
+  ggsave("Dates_to_Matches_Correlation.png")
+```
+```{r}
+
+```
