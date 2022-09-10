@@ -1,0 +1,337 @@
+---
+title: "Car Engine Displacement & Horsepower Analysis (Code)"
+author: "Emerson Fleming"
+date: "9/10/2022"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(tidyr)
+require(dplyr)
+require(foreign)
+require(haven)
+require(readr)
+library(stringr)
+library(mice)
+library(ggcorrplot)
+library(ggpubr)
+library(interplot)
+```
+
+## Step 1: The Cleaning of the Data!
+
+```{r, echo = TRUE}
+Cars_Data <- read_csv("./EFleming-train-data-used-cars - train-data-used-cars (3).csv")
+Cars_Data$Make <- word(Cars_Data$Name, 1)
+Cars_Data$Model <- word(Cars_Data$Name, 2)
+Cars_Data <- rename(Cars_Data, "Price" = "Price in $")
+#Here, we are simply creating a new Make and Model column in the dataset to compare vehicles further. Originally, there is only a "name" column for cars that includes the make and model. This change allows for better analysis across makes primarily.
+```
+
+```{r}
+Cars_Data %>% summarise_all(funs(sum(is.na(.)))) #NAs in Mileage, Engine, Power, and Seats. We want to fix these NA values the best we can. We will do so using the MICE function (multiple imputation & Basesian Statistics) to "guess" our NA values.
+```
+
+
+```{r, echo = TRUE}
+Imputed_Data <- mice(Cars_Data, m=5, method = "rf") #Used MICE for imputed data
+Cars_Data_Imputed <- complete(Imputed_Data) 
+Cars_Data_Imputed <- na.omit(Cars_Data_Imputed) #Omitted the few variables MICE did not create a variable for. This is not exactly ideal. However, MICE has helped create inputs for several hundred NA values at this point.
+Cars_Data_Imputed$Engine = as.numeric(sub("\\ .*", "", Cars_Data_Imputed$Engine))
+Cars_Data_Imputed$Mileage = as.numeric(sub("\\ .*", "", Cars_Data_Imputed$Mileage))
+Cars_Data_Imputed$Power = as.numeric(sub("\\ .*", "", Cars_Data_Imputed$Power))
+##Here we are taking off the the original "bhp (for "Power), kmpl (for "Mileage), and cc (for "Engine"). This is necesary as we cannot plot character vectors. Instead, we need the values to be numerical.
+```
+
+```{r, echo = TRUE}
+Cars_Data_Imputed$Make[Cars_Data_Imputed$Make == "ISUZU"] = "Isuzu"
+Cars_Data_Imputed$Make[Cars_Data_Imputed$Make == "MiniCooper"] = "Mini"
+unique(Cars_Data_Imputed$Make)
+##Here we fix problems in the dataset. For instance, there are two occurrences of two makes which needed changing to unnecessary prevent noise or data distortion.
+```
+
+
+```{r}
+sapply(Cars_Data_Imputed, function(x) sum(is.na(x))) #function to try and find NA values. We want to make sure there are no NA values. Otherwise, we could have problems attempting to graphically represent the data. Additionally, it is better the solve the missing variables to the best of our ability than to simply leave them blank.
+```
+
+```{r,  echo = TRUE}
+summary(Cars_Data_Imputed) #Here, we take a peak at the data before building a model for multivariate analysis. 
+```
+
+
+```{r,  echo = TRUE}
+Reg <- lm(Price~Engine + Mileage + Owner_Type + Seats + as.factor(Transmission) + Make + Year, data = Cars_Data_Imputed)
+summary(Reg)
+#Here, we start to build a model to get an idea of what we would like the final model to look like and to troubleshoot in the process.
+```
+
+
+```{r}
+plot(density(Cars_Data_Imputed$Price)) #We use a density plot in order to see if our data is misleading at all. Our initially summary of the linear model suggests that the data for Price and Engine could be skewed. As we can see, the data mostly consists of cars in the 1-15k or so price range. 
+```
+
+```{r}
+plot(density(Cars_Data_Imputed$Engine)) #This particular graph demonstrates the mass majority of the cars are also and the lower end of the power spectrum. Ideally we would want a smoother and less misleading line for our density plots for both the "Engine" and "Price" variables. Therefore, we will create logs and map the results.
+```
+
+```{r}
+Cars_Data_Imputed$LPrice = log(Cars_Data_Imputed$Price) #Here, we create the logs themselves.
+Cars_Data_Imputed$LEngine = log(Cars_Data_Imputed$Engine)
+```
+
+
+```{r}
+plot(density(Cars_Data_Imputed$LEngine)) #Here, we can observe a much better and more balanced result for our logged variables.
+```
+
+```{r}
+plot(density(Cars_Data_Imputed$LPrice)) #Again, we can observe a much better and more balanced result for our logged variables. These changes will help greatly as we begin to analyze the data.
+```
+
+## Step 2: Exploratory Analysis
+
+```{r,  echo = TRUE}
+Cars_Data_Imputed <- Cars_Data_Imputed %>% drop_na() #NAs were dropped in order to create this correlation matrix. However the handful of cases that the MICE function missed were left in for the analysis.
+Cars_Data_Imputed_Cor <- Cars_Data_Imputed[, c("Year", "Kilometers_Driven", "Mileage", "Engine", "Power", "Seats", "Price")]
+Cor_Data_Test <- cor(Cars_Data_Imputed_Cor) 
+ggcorrplot(Cor_Data_Test, lab = TRUE) #The following plot visualizes upper correlation coefficients in the data,
+```
+
+# Step 3: Visualizations before model
+*The seats visualization was not used as Marginal Error was used to compare models and assess results. Therefore, there was no accessible way to also fit in seats.
+
+```{r}
+ggplot(Cars_Data_Imputed,
+  aes(x = Seats, y = Price)) +
+  coord_cartesian(xlim = c(1, 8), ylim = c(0, 120)) +
+  geom_point(size = 0.5) +
+  geom_line(colour = "red") +
+  scale_y_continuous(breaks=seq(0, 120, by=40)) +
+  geom_smooth() +
+  facet_wrap(~Make) +
+  labs(title = "Used Cars (Seats vs. Price)",
+       x = "Seats",
+       y = "Price(in thousands)")+
+  theme_classic()
+```
+
+```{r}
+ggplot(Cars_Data_Imputed,
+  aes(x = Engine, y = Price)) +
+  coord_cartesian(xlim = c(0, 5000), ylim = c(0, 120)) +
+  geom_point(size = 0.5) +
+  geom_line(colour = "blue") +
+  geom_smooth() +
+  coord_flip() +
+  facet_wrap(~Make) +
+  labs(title = "Used Cars (Engine [CC's] vs. Price)",
+       x = "Engine",
+       y = "Price (in thousands)")+
+  theme_classic()
+```
+
+```{r}
+ggplot(Cars_Data_Imputed,
+  aes(x = Power, y = Price)) +
+  coord_cartesian(xlim = c(0, 700), ylim = c(0, 100)) +
+  geom_point(size = 0.5) +
+  geom_line(colour = "red") +
+  facet_wrap(~Make) +
+  labs(title = "Used Cars (Power [HP] vs. Price)",
+       x = "Power",
+       y = "Price (in thousands)")+
+  theme_classic()
+```
+
+## Step 4: Modeling
+
+### Inclusive Cars Model
+
+$$
+lm(LPrice~LEngine * Power + Owner_Type + Mileage + Year + Seats + Make + Kilometers_Driven, data = Cars_Data_Imputed)
+$$
+
+```{r}
+Reg_w_L <- lm(LPrice~LEngine * Power + Owner_Type + Mileage + Year + Seats + Make + Kilometers_Driven, data = Cars_Data_Imputed)
+summary(Reg_w_L)
+#Here, we can plug in our new logged "LPrice" and "LEngine" variables into our original model for a better analysis. #As we can see, there is not a considerable correlation for every make of vehicle. Additionally, there is a strong correlation with mileage and the current model (denoted by its lack of stars and very high p-value).
+
+#All variables are included at first and we implement backward elimination in order to create the best model. The process in which each variable is excluded will be included below.
+
+#The interesting thing to note is the interaction between Power and Engine. Power and Engine have a correlation as typically, the larger an engine is, the more power it brings to the table. Before I added an interaction between LEngine and Power, there were only correlations between Audi, Bentley, BMW, Datsun, Jaguar, Lamborghini, Land Rover, Mercedes-Benz, Mini, Porsche, SmartCar, and TaTa. Now the model is more inclusive (from only 12 makes to 15 makes). Our model already demonstrates that there is a high correlation between Price to Engine, Mileage, Owner Amount, Seats, Transmission, Make and Year for higher end automobiles only.
+
+#We also will take out Transmission as this only seems to be less inclusive when added. In other words, we have statistical significance with 16 makes without Transmission versus 15 makes with Transmission.
+
+#Adding Fuel_Type also seems to make the data less inclusive so no point in adding this variable either.
+
+#There does appear to be some correlation between location but not a lot and adding this variable fails to create any more makes with statistical significance. Therefore, it will not be added.
+
+#Strangely, there is no correlation between LPrice and Kilometers_Driven so we will use Mileage (Gas Mileage that is) instead.
+
+#Ultimately, we end up with Statistical Significance across 16 makes.
+
+#We see the highest correlation between LPrice and Year, Lprice and Power and LPrice and Seats. Therefore, these will be the 3 we graphically represent before we build predictive models.
+
+#Kilometers Driven will serve as the control variable due to its very low (if any) statistical significance.
+```
+
+### Expensive Cars Model
+*This uses the same model as the inclusive model but is modified to only include a dataset with expensive models.
+
+```{r,  echo = TRUE}
+expensive = c("Audi", "BMW", "Bentley", "Jaguar", "Lamborghini", "Porsche", "Mercedes-Benz", "LandRover")
+Cars_expensive = subset(Cars_Data_Imputed, Make %in% expensive)
+Reg_w_L_expensive <- lm(LPrice~LEngine * Power + Owner_Type + Mileage + Year + Seats + Make + Kilometers_Driven, data = Cars_expensive)
+summary(Reg_w_L_expensive)
+#The following model includes only 12 makes. However, what is particularly notable is that with just taking power out and adding Transmission, we have a model that predicts the price perfectly of luxury cars. Every single car with the exception of Tata motors is a luxury car. When we add Location, we get even more statistical significance for each model included. For some reason, Location really only seems to affect luxury used cars.
+
+#Kilometers Driven will serve as the control variable due to its very low (if any) statistical significance.
+```
+
+### Affordable Cars Model
+*This uses the same model as the inclusive model but is modified to only include a dataset with affordable models.
+
+```{r,  echo = TRUE}
+Cars_affordable= subset(Cars_Data_Imputed, !(Make %in% expensive))
+Reg_w_L_affordable <- lm(LPrice~LEngine * Power + Owner_Type + Mileage + Year + Seats + Make + Kilometers_Driven, data = Cars_affordable)
+summary(Reg_w_L_affordable)
+#This model includes a large percentage of the affordable car brands. It does include Bentley, Lamborghini and LandRover. Unfortunately, this is possibly the best that can be done with the data that we have to create a model for inexpensive models. The good news is that it includes statistical significance for 11 affordable car brands. Additionally, we have added the Location variable in order to increase the statistical significance for some of the more affordable cars.
+
+#Kilometers Driven will serve as the control variable due to its very low (if any) statistical significance.
+```
+
+
+```{r}
+par(mfrow = c(2,3))    
+plot(Reg_w_L, which = 1:6)  
+```
+## Step 5: Diagnostic plots
+
+### Residuals vs. Fitted
+
+As we can see, for the residuals vs. fitted portion, the models is doing well and things look great for the most part. Non-linearity is not violated. The residuals are for the most part, bouncing randomly around the 0 line and are primarily horizontal. However, there is an outlier (entry 3133).
+
+### QQ Plot
+
+The model demonstrates homoskedacity. The QQ plot also looks solid, the points are on an upward trajectory but do no fall perfectly along this line. This is quite good. However, again, entry 3133 is at least slightly alarming.
+
+### Scale-Location
+
+Heteroskedacitiy does no appearThe Scale-Location plot looks quite good. The spread across the red like does not appear to vary with regards to values. Entry 3060 is a bit troubling and entry 3133 makes an appearance yet again.
+
+### Cook's Distance
+
+The Cook's Distance plot looks fine. Entry 1222 is worth investigating but it looks promising for the most part.
+
+### Residuals vs. Leverage
+
+The Residuals vs. Leverage plot looks acceptable. Points are well outisde of the dashed lines.
+
+### Cook's Distance vs. Leverage
+
+Overall, Cook's Distance vs. Leverage is complex and can be confusing to read. Therefore, this particular plot will not be used for comparison.
+
+### Investigation of Outliers (3060)
+
+```{r}
+Cars_Data_Imputed[Cars_Data_Imputed$Name=="BMW 3 Series 320d Luxury Line",]
+#For entry 3060, it happens to be a BMW 3 Series 320d Luxury Line. Fortunately, there are other entries of the exact same model in the dataset. For one, entry 3060 is a 2019 which would be the newest of any other BMW 320d's in the dataset. As we know from the model, the year plays a significant role in the price of the car. The price is extremely low compared to the average price of other BMW 320d's. However, this car has also been driver farther than any other car in the dataset. Strangely, a 2016 BMW 320D with 2/3 of the mileage still sells for nearly 4x the price. This likely means that this particular 320D has problems and expensive maintenance fixes that the data has no way to describe. The car could have been in a wreck and is still in its wrecked form waiting to be sold.
+```
+
+### Investigation of Outliers (3133)
+
+```{r}
+Cars_Data_Imputed[Cars_Data_Imputed$Name=="Porsche Cayenne Base",]
+#This Porsche Cayenne Base has an especially low price. Especially given that the car has an MSRP around $70,000. Given the fairly recent year of the car, this vehicle should be able to fetch a very reasonable price. The car has relatively low mileage and kilometers driven. However, the price is extremely low. Again, this car was likely involved in an accident of some variety and is being sold in its wrecked from (perhaps as a parts car). This would be the only reasonable explanation for such an expensive car selling for so little.
+```
+
+## Step 6: Modeling Continued
+
+### Inclusive Cars Model (Full Sample)
+
+```{r}
+interplot(m = Reg_w_L, var1 = "LEngine", var2 = "Power") +
+   xlab('Power') +
+  ggtitle('Marginal Effect of LEngine on Price (Full Sample)')
+```
+For cars with hp under 290, the marginal effect of engine size is positive. This means that for those cars, higher engine size leads to higher price. However, this effect goes down as power goes up such that for cars with power above 300 hp, the effect of engine size on car price is negative. 
+
+
+```{r}
+interplot(m = Reg_w_L, var1 = "Power", var2 = "LEngine") +
+  xlab('LEngine') +
+  ggtitle('Marginal Effect of Power on Price(Full Sample)')
+```
+
+Marginal effect of power on price is decreasing as engine size of the car increases. However, this effect is always positive for the range of engine sizes in the sample (it will turn into negative only if LEngine is larger than 11 which implies engine size above 59,000 cc). Therefore, the Marginal Effect of power will always be positive regardless of engine size.
+
+### Expensive Car Models
+
+```{r}
+interplot(m = Reg_w_L_expensive, var1 = "Power", var2 = "LEngine") +
+  xlab('LEngine') +
+  ggtitle('Marginal Effect of Power on Price (Expensive Cars)')
+
+expensive_1 <- interplot(m = Reg_w_L_expensive, var1 = "Power", var2 = "LEngine") +
+  xlab('LEngine') +
+  ggtitle('Marginal Effect of Power on Price (Expensive Cars)')
+```
+At every engine size, the marginal effect of power on price is higher for affordable cars compared to that effect for expensive cars.
+
+```{r}
+interplot(m = Reg_w_L_expensive, var1 = "LEngine", var2 = "Power") +
+  xlab('Power') +
+  ggtitle('Marginal Effect of LEngine on Price (Expensive Cars)')
+
+expensive_2 <- interplot(m = Reg_w_L_expensive, var1 = "LEngine", var2 = "Power") +
+  xlab('Power') +
+  ggtitle('Marginal Effect of LEngine on Price (Expensive Cars)')
+```
+
+
+```{r}
+ggarrange(expensive_1, expensive_2, nrow = 2)
+```
+
+
+For expensive, we can observe that the Marginal Effect of LEngine is positive for cars up with horsepower up to approximately 360. 
+
+
+### Affordable Car Models
+
+```{r}
+interplot(m = Reg_w_L_affordable, var1 = "Power", var2 = "LEngine") +
+  xlab('LEngine') +
+  ggtitle('Marginal Effect of Power on Price (Affordable Cars)')
+
+affordable_1 <- interplot(m = Reg_w_L_affordable, var1 = "Power", var2 = "LEngine") +
+  xlab('LEngine') +
+  ggtitle('Marginal Effect of Power on Price (Affordable Cars)')
+```
+
+```{r}
+interplot(m = Reg_w_L_affordable, var1 = "LEngine", var2 = "Power") +
+  xlab('Power') +
+  ggtitle('Marginal Effect of LEngine on Price (Affordable Cars)')
+
+affordable_2 <- interplot(m = Reg_w_L_affordable, var1 = "LEngine", var2 = "Power") +
+  xlab('Power') +
+  ggtitle('Marginal Effect of LEngine on Price (Affordable Cars)')
+```
+
+
+```{r}
+ggarrange(affordable_1, affordable_2, nrow = 2)
+```
+
+
+For affordable cars, we can observe that the Marginal Effect of LEngine is positive for cars up with horsepower up to approximately 320. 
+
+
+## Conclusion
+
+Overall, people wish to buy cars with smaller sized engines in cc's that deliver optimal horsepower. This effect is even larger for affordable cars compared to expensive cars. This is likely because when customers go to buy affordable cars, they at least wish for power. In the case of expensive cars, they are less particular about how much power the car has due to the luxury features.
+
