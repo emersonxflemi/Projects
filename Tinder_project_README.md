@@ -5,3 +5,10 @@ The methods of the leading expert for online professional dating guidance for yo
 Overall, results demonstrated that methods created by the "Text God" assisted participants when put into practice. 
 Therefore, the project was created to not only reveal experiment results but to propose a follow up experiment. 
 The code in addition to the data and final paper are included in this folder. 
+
+What is included:
+1. The presentation slides for the project
+2. A poster created to show results
+3. The raw code used to generate the visualizations
+4. The data collected by participants
+5. The final paper 
