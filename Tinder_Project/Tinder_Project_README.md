@@ -11,4 +11,4 @@ What is included:
 2. A poster created to show results
 3. The raw code used to generate the visualizations
 4. The data collected by participants
-5. The final paper 
+5. The final paper
