@@ -1,7 +1,6 @@
-# kickstarter-analysis
-The following repository contains an analysis on trends of Kickstarter data
-# Kickstarting with Excel
+# Kickstarter-Analysis
 by Emerson Fleming
+The following repository contains an analysis on trends of Kickstarter data
 
 
 ## Overview of the Project
