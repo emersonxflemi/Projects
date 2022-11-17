@@ -1,0 +1,57 @@
+---
+title: "Does College Prestige Affect Student Online Dating Performance?"
+author: "Emerson Fleming"
+date: "11/15/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+require(ggthemes)
+require(tidyverse)
+require(tidyr)
+require(dplyr)
+Tinder.Results <- read.csv("/Applications/DACSS 695SR/Tinder Millennial Match Rate Dataset w_ School Ranking - Tinder Millennial Match Rate Dataset.csv", header=TRUE, stringsAsFactors = FALSE) 
+Tinder.Results.Yes.Yes <- read.csv("/Applications/DACSS 695SR/YesYes.csv", header=TRUE, stringsAsFactors = FALSE) 
+```
+
+
+```{r, include=FALSE}
+Tinder.Results.Best <- filter(Tinder.Results, `Count` < 200, `Count` > 10)
+```
+
+
+```{r, echo=FALSE}
+ggplot(Tinder.Results.Best,
+    aes(x=University.Ranking, y=Percentage, fill=Answer)) +
+    geom_point(size = 1, color = "black") +
+    facet_wrap(~Answer) +
+    geom_smooth(color = "black") +
+    coord_cartesian(xlim = c(0, 400), ylim = c(0, 0.6)) +
+    labs(title = "University National Ranking versus Tinder Performance", 
+         subtitle = "Were students able to turn matches into relationships?",
+         caption = "Source: Kaggle",
+         x = "National University Ranking",
+         y = "Percentage") +
+    theme_classic()
+```
+
+# Does National School Ranking Affect Online Dating Performance?
+
+The world of online dating has become increasingly viable in the modern world—especially in the wake of a global pandemic. Naturally, a correlation exists between the quality of partners people are able to meet and their socioeconomic status. Furthermore, a correlation between the quality and length of education and the jobs and opportunities that are available; this should come as no surprise. Measures suggest that as much as 40% of the population in the United States have tried online dating in some capacity (Curington, 74). Studies also suggest nearly 70% of all US college students have tried some form of online dating (Ibid, 79).
+
+Tinder represents the most popular of all dating apps for the college-aged group due to its ease of use (Van Der Linden). While many view Tinder as a ‘hookup app’, the reality is that a disproportionately small percentage of users actually download the app for hookups alone (LeFebvre, 10). While online dating has not proven itself as a viable alternative to meeting someone naturally and in-person, results demonstrate that as many as 46% percent of those who have tried online dating found an increase in partner accessibility (Ibid, 10). 
+
+As we would expect, online dating success has an enormous correlation to the quality of the user profile (Text God). The quality of the profile depends on the quality of the pictures and overall attractiveness of the individual. Additionally, it certainly never hurts to include pictures that demonstrate financial stability and engaging social life. For most college students, the largest element with regards to perception of potential future earnings coincides with the quality of their college degree. In most cases, the quality of the degree is determined by the National Ranking of the school.
+
+Research demonstrates that a considerable correlation between Tinder success and National School Ranking does exist. As indicated by the figure, Students that answered “yes” to successfully turning Tinder matches into relationships occurs increasingly more often for students that attend schools in the top 100. Students that attend schools that fall within the top 30 Nationally Ranked Universities garner the very best Tinder results overall. These individuals answer “yes” to turning matches into relationships more, and “no” to whether they turned a Tinder match into a relationship less than their peers.
+
+The reason for this is for the simple fact that the most socially viable asset a college student has is the quality of their education. At this stage in life, college students have not entered the work world where yearly earnings and trinkets influence their results. For the vast majority of students with parents outside the 1% income bracket, their education is their most viable social asset for attracting partners. Therefore, these results are not particularly alarming. The next question at hand may be to assess whether the National School Ranking outweighs the economic prosperity of the college-aged individual’s family. Until next time.
+
+### Work Cited:
+
+1. LeFebvre, Leah E. Swiping me off my feet: Explicating relationship initiation on Tinder. (University of Wyoming, 2018).
+2. Text God. (TextGod.com, 2021).
+3. Van Der Linden, Sander. “Shopping for Love.” Scientific American Mind, vol. 23, no. 1, 2012, pp. 18–19., www.jstor.org/stable/24942103. Accessed 13 Sept. 2021.
+4. Curington, Dating Divide. (University of California Press, 2021).
+
