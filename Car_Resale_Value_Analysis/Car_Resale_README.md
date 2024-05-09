@@ -7,7 +7,4 @@ vehicles tend exist in the center this spectrum regarding price and horsepower. 
 
 What this folder contains:
 
-1. The raw code
-2. The picture used for the title page
-3. The data
-4. A pdf of the raw code and final result
+1. A pdf of the raw code and final result
