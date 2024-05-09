@@ -1,4 +1,4 @@
-# Car Price Versus Engine Price and Horsepower Analysis
+# README
 
 An analysis was conducted to determine if car resale price is influenced by engine size (in cc's) and horsepower. 
 The project uses data derived from Kaggle. Overall, findings demontrate consumers that purchase less expensive cars are generally more concerned
